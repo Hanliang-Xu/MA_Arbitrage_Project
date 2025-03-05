@@ -1,0 +1,31 @@
+DESCRIPTION: This project retrieves and processes M&A data from an Excel file and fetches
+historical stock prices using Yahoo Finance.
+
+REQUIREMENTS:
+
+Python 3.8+ (we recommend using the latest stable Python release)
+pip (bundled with most Python installations)
+FOLDER STRUCTURE: MA_Project/ ├── .gitignore ├── README.txt ├── requirements.txt ├── scripts/ │
+ └── main_script.py └── venv/
+
+.gitignore - Tells Git which files/folders to ignore, e.g., venv
+README.txt - This documentation file
+requirements.txt - List of Python dependencies
+scripts/ - Directory containing Python scripts
+venv/ - Local virtual environment folder (usually not committed to Git)
+
+SETUP AND USAGE:
+Clone the repository: git clone https://github.com/yourusername/my_project.git cd my_project
+Create and activate a virtual environment:
+   On Windows: python -m venv venv venv\Scripts\activate
+   On macOS or Linux: python -m venv venv source venv/bin/activate
+Install dependencies: pip install -r requirements.txt
+Run the script: python scripts/main_script.py (Follow any prompts, e.g., entering a ticker symbol)
+Deactivate the virtual environment (when finished): deactivate
+
+CONTRIBUTING:
+Fork the repository on GitHub.
+Create a new branch: git checkout -b feature/your-feature
+Make your changes and commit them: git commit -m "Add your feature"
+Push the branch: git push origin feature/your-feature
+Open a Pull Request on GitHub.
