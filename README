@@ -1,11 +1,12 @@
-DESCRIPTION: This project retrieves and processes M&A data from an Excel file and fetches
-historical stock prices using Yahoo Finance.
+DESCRIPTION: 
+This repository serves as a hub for our code related to a MA arbitrage strategy we are developing.
+
 
 REQUIREMENTS:
 
-Python 3.8+ (we recommend using the latest stable Python release)
+Python 3.13.2+ (we recommend using the latest stable Python release)
 pip (bundled with most Python installations)
-FOLDER STRUCTURE: MA_Project/ ├── .gitignore ├── README.txt ├── requirements.txt ├── scripts/ │
+FOLDER STRUCTURE: MA_Arbitrage_Project/ ├── .gitignore ├── README.txt ├── requirements.txt ├── scripts/ │
  └── main_script.py └── venv/
 
 .gitignore - Tells Git which files/folders to ignore, e.g., venv
@@ -15,13 +16,22 @@ scripts/ - Directory containing Python scripts
 venv/ - Local virtual environment folder (usually not committed to Git)
 
 SETUP AND USAGE:
-Clone the repository: git clone https://github.com/yourusername/my_project.git cd my_project
+Clone the repository: git clone https://github.com/Hanliang-Xu/MA_Arbitrage_Project.git cd my_project
 Create and activate a virtual environment:
    On Windows: python -m venv venv venv\Scripts\activate
    On macOS or Linux: python -m venv venv source venv/bin/activate
 Install dependencies: pip install -r requirements.txt
 Run the script: python scripts/main_script.py (Follow any prompts, e.g., entering a ticker symbol)
 Deactivate the virtual environment (when finished): deactivate
+
+ISSUE RESOLUTION:
+If you encounter any issues or bugs, please feel free to communicate!
+Some common issues include:
+   Missing dependencies: Install the required packages using pip install -r requirements.txt
+   Incorrect Python version: Ensure you are using Python 3.13.2 or later. A good tool to manage Python versions is pyenv, which you can easily install from its GitHub repository.
+   API errors: Verify that the API key is valid and has the necessary permissions
+   Data issues: Confirm that the data source/files is accessible and up-to-date
+   Import errors: Confirm you are importing correct modules, that all dependencies are installed, and you are running the script on the current environment/interpreter
 
 CONTRIBUTING:
 Fork the repository on GitHub.
