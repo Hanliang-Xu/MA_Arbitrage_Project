@@ -3,17 +3,19 @@ import matplotlib.pyplot as plt
 from strategy import generate_orders_from_deals
 from backtester import backtest
 from stats_utils import compute_cagr, compute_sharpe_ratio, compute_max_drawdown
+from report_generator import save_portfolio_report_csv, save_portfolio_report_html
 
 def main():
     # 1) Load price data and extract trading dates
     price_df = pd.read_csv("price.csv", parse_dates=["date"])
+    
     trading_dates = sorted(price_df['date'].unique())
 
     # 2) Generate orders from deals using the strategy module
     orders_df = generate_orders_from_deals(
         deals_csv_path="deals.csv",
         trading_dates=trading_dates,
-        shares_on_announce=100,
+        shares_on_announce=300,
         shares_on_amendment=50
     )
 
@@ -36,15 +38,31 @@ def main():
     print("Sharpe Ratio:", sharpe)
     print("Max Drawdown:", max_dd)
 
-    # 5) Visualize the portfolio performance
-    plt.figure(figsize=(12, 6))
-    plt.plot(portfolio_values_df.index, portfolio_values_df['value'], label='Portfolio Value', linewidth=2)
-    plt.title('M&A Strategy Portfolio Value Over Time')
-    plt.xlabel('Date')
-    plt.ylabel('Value (USD)')
-    plt.legend()
-    plt.grid(True)
+    fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(14, 6), sharex=True)
+
+    # Plot 1: Total Portfolio Value
+    axes[0].plot(portfolio_values_df.index, portfolio_values_df['value'], label='Portfolio Value', linewidth=2)
+    axes[0].set_title('Portfolio Value Over Time')
+    axes[0].set_xlabel('Date')
+    axes[0].set_ylabel('USD')
+    axes[0].grid(True)
+    axes[0].legend()
+
+    # Plot 2: Invested Capital
+    axes[1].plot(portfolio_values_df.index, portfolio_values_df['invested_capital'], label='Invested Capital', linewidth=2, color='orange')
+    axes[1].set_title('Invested Capital Over Time')
+    axes[1].set_xlabel('Date')
+    axes[1].set_ylabel('USD')
+    axes[1].grid(True)
+    axes[1].legend()
+
+    plt.tight_layout()
     plt.show()
+
+    # 6) Generate a daily portfolio document
+    save_portfolio_report_csv(portfolio_values_df, "daily_portfolio_report.csv")
+    save_portfolio_report_html(portfolio_values_df, "daily_portfolio_report.html")
+
 
 if __name__ == "__main__":
     main()

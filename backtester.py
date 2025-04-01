@@ -110,16 +110,19 @@ def backtest(
 
         # ----- 2) Compute daily portfolio value -----
         # = sum of (positions[event_id] * today's price) over all event_ids + cash
-        daily_value = cash
+        invested_capital = 0
 
         # Sum the value of each open position
         for deal_id, shares_owned in positions.items():
             if (current_date, deal_id) in price_lookup:
                 p = price_lookup[(current_date, deal_id)]
-                daily_value += shares_owned * p
+                invested_capital += shares_owned * p
+
+        daily_value = cash + invested_capital
+        filtered_positions = {key: value for key, value in positions.items() if value > 0}
 
         # Record the daily portfolio value
-        portfolio_history.append({'date': current_date, 'value': daily_value})
+        portfolio_history.append({'date': current_date, 'value': daily_value, 'invested_capital': invested_capital, 'holdings': filtered_positions})
 
     # Create a DataFrame of results
     portfolio_values_df = pd.DataFrame(portfolio_history)

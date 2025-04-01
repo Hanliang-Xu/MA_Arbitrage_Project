@@ -46,6 +46,8 @@ def load_deals(deals_csv_path: str) -> pd.DataFrame:
         DataFrame containing deals with converted date columns.
     """
     deals_df = pd.read_csv(deals_csv_path)
+    deals_df = deals_df[deals_df["Payment Type"].str.strip() == "Cash"]
+    
     date_columns = ["Announce Date", "Amendment Date", "Completion/Termination Date"]
     for col in date_columns:
         deals_df[col] = pd.to_datetime(deals_df[col], errors='coerce')
