@@ -48,7 +48,7 @@ def load_deals(deals_csv_path: str) -> pd.DataFrame:
     deals_df = pd.read_csv(deals_csv_path)
     deals_df = deals_df[deals_df["Payment Type"].str.strip() == "Cash"]
     
-    date_columns = ["Announce Date", "Amendment Date", "Completion/Termination Date"]
+    date_columns = ["Announce Date", "Completion/Termination Date"]
     for col in date_columns:
         deals_df[col] = pd.to_datetime(deals_df[col], errors='coerce')
     return deals_df
@@ -59,15 +59,13 @@ def load_deals(deals_csv_path: str) -> pd.DataFrame:
 def generate_orders(
     deals_df: pd.DataFrame,
     trading_dates: List[datetime],
-    shares_on_announce: int = 100,
-    shares_on_amendment: int = 50
+    shares_on_announce: int = 100
 ) -> pd.DataFrame:
     """
     Generate trading orders based on deal events.
     
     The strategy is:
       - Buy `shares_on_announce` shares on the first valid trading day after the Announce Date.
-      - (Optionally) Buy additional shares on the Amendment Date.
       - Sell all shares on the last valid trading day before the Completion/Termination Date.
     
     Parameters
@@ -78,8 +76,6 @@ def generate_orders(
         Sorted list of valid trading dates.
     shares_on_announce : int, optional
         Number of shares to buy at the announce event (default is 100).
-    shares_on_amendment : int, optional
-        Number of shares to buy on amendment (default is 50). [Currently unused.]
         
     Returns
     -------
@@ -94,7 +90,6 @@ def generate_orders(
 
         deal_id = deal['deal_id']
         announce_date = deal.get("Announce Date", pd.NaT)
-        # amend_date = deal.get("Amendment Date", pd.NaT)  # Unused for now.
         completion_date = deal.get("Completion/Termination Date", pd.NaT)
 
         # Buy on the first valid trading day after Announce Date
@@ -129,8 +124,7 @@ def generate_orders(
 def generate_orders_from_deals(
     deals_csv_path: str,
     trading_dates: List[datetime],
-    shares_on_announce: int = 100,
-    shares_on_amendment: int = 50
+    shares_on_announce: int = 100
 ) -> pd.DataFrame:
     """
     Load deals from CSV and generate trading orders.
@@ -145,8 +139,6 @@ def generate_orders_from_deals(
         Sorted list of valid trading dates.
     shares_on_announce : int, optional
         Number of shares to buy on announcement.
-    shares_on_amendment : int, optional
-        Number of shares to buy on amendment.
         
     Returns
     -------
@@ -154,4 +146,4 @@ def generate_orders_from_deals(
         Orders DataFrame.
     """
     deals_df = load_deals(deals_csv_path)
-    return generate_orders(deals_df, trading_dates, shares_on_announce, shares_on_amendment)
+    return generate_orders(deals_df, trading_dates, shares_on_announce)

@@ -12,12 +12,13 @@ def main():
     trading_dates = sorted(price_df['date'].unique())
 
     # 2) Generate orders from deals using the strategy module
-    orders_df = generate_orders_from_deals(
-        deals_csv_path="deals.csv",
-        trading_dates=trading_dates,
-        shares_on_announce=300,
-        shares_on_amendment=50
-    )
+    # orders_df = generate_orders_from_deals(
+    #     deals_csv_path="deals.csv",
+    #     trading_dates=trading_dates,
+    #     shares_on_announce=300,
+    # )
+
+    orders_df = generate_orders_from_deals("deals.csv", "price.csv", capital_each_side=30000)
 
     # 3) Run the backtest using the backtester module
     portfolio_values_df = backtest(
