@@ -28,7 +28,9 @@ def extract_offer_price(cash_terms: str) -> Optional[float]:
         return None
     try:
         if "/sh" in cash_terms:
-            return float(cash_terms.split("/")[0].replace(",", ""))
+            price_per_share = float(cash_terms.split("/")[0].replace(",", ""))
+            print(price_per_share)
+            return price_per_share
         else:
             print(f"Skipping non-per-share offer: {cash_terms}")
             return None
@@ -44,19 +46,19 @@ def compute_fallback_price(deal_id, announce_date, price_history_df) -> Optional
         ].sort_values("date")
 
         if price_rows.empty:
-            print(f"⚠️ No price found for deal_id {deal_id} on or after announce date {announce_date}")
+            print(f"No price found for deal_id {deal_id} on or after announce date {announce_date}")
             return None
 
         first_row = price_rows.iloc[0]
         actual_date = first_row["date"]
 
         if actual_date != announce_date:
-            print(f"⚠️ Using fallback price for deal_id {deal_id} from {actual_date.date()} instead of announce date {announce_date.date()}")
+            print(f"Using fallback price for deal_id {deal_id} from {actual_date.date()} instead of announce date {announce_date.date()}")
 
         return first_row["price"]
 
     except Exception as e:
-        print(f"⚠️ Error getting fallback price for deal_id {deal_id}: {e}")
+        print(f"Error getting fallback price for deal_id {deal_id}: {e}")
         return None
 
 def estimate_implied_probability(deal) -> Optional[float]:
@@ -94,12 +96,12 @@ def load_deals(deals_csv_path: str, price_history_df: pd.DataFrame, min_prob_thr
     # Compute implied probabilities
     deals_df["Implied Prob"] = deals_df.apply(estimate_implied_probability, axis=1)
 
-    print(f"📊 Loaded {len(deals_df)} deals")
-    print(f"📉 Max Implied Probability: {deals_df['Implied Prob'].max():.2%}")
-    print(f"📉 Min Implied Probability: {deals_df['Implied Prob'].min():.2%}")
+    print(f"Loaded {len(deals_df)} deals")
+    print(f"Max Implied Probability: {deals_df['Implied Prob'].max():.2%}")
+    print(f"Min Implied Probability: {deals_df['Implied Prob'].min():.2%}")
 
     deals_df = deals_df[deals_df["Implied Prob"] >= min_prob_threshold]
-    print(f"✅ Deals after filtering (p ≥ {min_prob_threshold}): {len(deals_df)}")
+    print(f"Deals after filtering (p ≥ {min_prob_threshold}): {len(deals_df)}")
 
     return deals_df
 
@@ -151,14 +153,14 @@ def generate_orders(
     orders_df = pd.DataFrame(orders)
 
     if orders_df.empty:
-        print("⚠️ No orders were generated — check probability thresholds or data.")
+        print("No orders were generated — check probability thresholds or data.")
         return orders_df  
 
     if "date" in orders_df.columns:
         orders_df["date"] = pd.to_datetime(orders_df["date"])
         orders_df.sort_values(by="date", inplace=True)
     else:
-        print("⚠️ 'date' column missing in orders — this should not happen if orders are formatted properly.")
+        print("'date' column missing in orders — this should not happen if orders are formatted properly.")
         return pd.DataFrame()
 
     return orders_df

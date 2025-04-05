@@ -15,7 +15,7 @@ def main():
         price_history_df=price_df,
         shares_on_announce=300,
         min_prob_threshold=0.75,
-        scale_with_probability=True
+        scale_with_probability=False
     )
 
     # 3) Run backtest on generated orders
