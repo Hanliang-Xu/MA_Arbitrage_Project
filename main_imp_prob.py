@@ -57,6 +57,7 @@ def main():
     axes[1].legend()
 
     plt.tight_layout()
+    plt.savefig("portfolio_performance_imp_prob.png")
     plt.show()
 
     # 6) Export daily portfolio report
