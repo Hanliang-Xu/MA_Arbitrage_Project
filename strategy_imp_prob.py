@@ -23,67 +23,88 @@ def get_previous_trading_day(date: datetime, trading_dates: List[datetime]) -> O
 ############################################
 # Deal Loading with Implied Probability Estimation
 ############################################
-def estimate_implied_probability(deal) -> Optional[float]:
-    try:
-        offer_price = extract_offer_price(deal["Cash Terms"])
-        arb_spread = float(deal["Arb Spread (Gross)"].strip('%')) / 100
-        if offer_price is None or pd.isna(deal["Fallback Price"]):
-            return None
-
-        target_price = offer_price * (1 - arb_spread)
-        fallback_price = deal["Fallback Price"]
-
-        p = (target_price - fallback_price) / (offer_price - fallback_price)
-        return max(0.0, min(p, 1.0))
-    except:
-        return None
-    
-def compute_fallback_price(deal_id, announce_date, price_history_df, window=10) -> Optional[float]:
-    try:
-        mask = (price_history_df["deal_id"] == deal_id) & (price_history_df["date"] < announce_date)
-        pre_announce_prices = price_history_df[mask].sort_values("date").tail(window)["price"]
-        if pre_announce_prices.empty:
-            return None
-        return pre_announce_prices.mean()
-    except:
-        return None
-    
 def extract_offer_price(cash_terms: str) -> Optional[float]:
-    """
-    Extract the per-share offer price from the 'Cash Terms' string.
-    Ex: "157.0000/sh." → 157.0
-    """
     if not isinstance(cash_terms, str):
         return None
     try:
         if "/sh" in cash_terms:
             return float(cash_terms.split("/")[0].replace(",", ""))
         else:
-            return None  # skip total value formats like "26000.0000 Mln"
-    except:
+            print(f"Skipping non-per-share offer: {cash_terms}")
+            return None
+    except Exception as e:
+        print(f"Failed to parse cash_terms '{cash_terms}': {e}")
         return None
 
+def compute_fallback_price(deal_id, announce_date, price_history_df) -> Optional[float]:
+    try:
+        price_rows = price_history_df[
+            (price_history_df["deal_id"] == deal_id) &
+            (price_history_df["date"] >= announce_date)
+        ].sort_values("date")
+
+        if price_rows.empty:
+            print(f"⚠️ No price found for deal_id {deal_id} on or after announce date {announce_date}")
+            return None
+
+        first_row = price_rows.iloc[0]
+        actual_date = first_row["date"]
+
+        if actual_date != announce_date:
+            print(f"⚠️ Using fallback price for deal_id {deal_id} from {actual_date.date()} instead of announce date {announce_date.date()}")
+
+        return first_row["price"]
+
+    except Exception as e:
+        print(f"⚠️ Error getting fallback price for deal_id {deal_id}: {e}")
+        return None
+
+def estimate_implied_probability(deal) -> Optional[float]:
+    try:
+        offer_price = extract_offer_price(deal["Cash Terms"])
+        arb_spread = float(deal["Arb Spread (Gross)"].strip('%')) / 100
+        fallback_price = deal["Fallback Price"]
+
+        if offer_price is None or pd.isna(fallback_price):
+            return None
+
+        target_price = offer_price * (1 - arb_spread)
+        p = (target_price - fallback_price) / (offer_price - fallback_price)
+        return max(0.0, min(p, 1.0))
+    except:
+        return None
 
 def load_deals(deals_csv_path: str, price_history_df: pd.DataFrame, min_prob_threshold: float = 0.75) -> pd.DataFrame:
     deals_df = pd.read_csv(deals_csv_path)
     deals_df = deals_df[deals_df["Payment Type"].str.strip() == "Cash"]
 
+    # Ensure date columns are datetime
     for col in ["Announce Date", "Completion/Termination Date"]:
         deals_df[col] = pd.to_datetime(deals_df[col], errors='coerce')
 
-    # Merge fallback prices
+    # Ensure deal_id is the same dtype as in price_history_df
+    deals_df["deal_id"] = deals_df["deal_id"].astype(price_history_df["deal_id"].dtype)
+
+    # Compute fallback price
     deals_df["Fallback Price"] = deals_df.apply(
         lambda row: compute_fallback_price(row["deal_id"], row["Announce Date"], price_history_df),
         axis=1
     )
 
+    # Compute implied probabilities
     deals_df["Implied Prob"] = deals_df.apply(estimate_implied_probability, axis=1)
+
+    print(f"📊 Loaded {len(deals_df)} deals")
+    print(f"📉 Max Implied Probability: {deals_df['Implied Prob'].max():.2%}")
+    print(f"📉 Min Implied Probability: {deals_df['Implied Prob'].min():.2%}")
+
     deals_df = deals_df[deals_df["Implied Prob"] >= min_prob_threshold]
+    print(f"✅ Deals after filtering (p ≥ {min_prob_threshold}): {len(deals_df)}")
 
     return deals_df
 
 ############################################
-# Order Generation (Probability-Aware)
+# Order Generation
 ############################################
 def generate_orders(
     deals_df: pd.DataFrame,
@@ -99,16 +120,13 @@ def generate_orders(
 
         deal_id = deal["deal_id"]
         p = deal.get("Implied Prob", 1.0)
-
         announce_date = deal.get("Announce Date", pd.NaT)
         completion_date = deal.get("Completion/Termination Date", pd.NaT)
 
-        # Adjust shares based on probability
         adjusted_shares = int(shares_on_announce * p) if scale_with_probability else shares_on_announce
         if adjusted_shares == 0:
             continue
 
-        # Buy after announcement
         if pd.notna(announce_date):
             buy_date = get_next_trading_day(announce_date, trading_dates)
             if buy_date is not None:
@@ -118,7 +136,6 @@ def generate_orders(
                     "shares": adjusted_shares
                 })
 
-        # Sell before completion
         if pd.notna(completion_date):
             sell_date = get_previous_trading_day(
                 get_previous_trading_day(completion_date, trading_dates),
@@ -132,11 +149,7 @@ def generate_orders(
                 })
 
     orders_df = pd.DataFrame(orders)
-    orders_df = pd.DataFrame(orders)
 
-    orders_df = pd.DataFrame(orders)
-
-    # in case no orders were generated
     if orders_df.empty:
         print("⚠️ No orders were generated — check probability thresholds or data.")
         return orders_df  
@@ -150,7 +163,9 @@ def generate_orders(
 
     return orders_df
 
-
+############################################
+# Entry Point for Strategy Usage
+############################################
 def generate_orders_from_deals(
     deals_csv_path: str,
     trading_dates: List[datetime],
