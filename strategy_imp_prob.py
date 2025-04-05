@@ -132,9 +132,24 @@ def generate_orders(
                 })
 
     orders_df = pd.DataFrame(orders)
-    orders_df["date"] = pd.to_datetime(orders_df["date"])
-    orders_df.sort_values(by="date", inplace=True)
+    orders_df = pd.DataFrame(orders)
+
+    orders_df = pd.DataFrame(orders)
+
+    # in case no orders were generated
+    if orders_df.empty:
+        print("⚠️ No orders were generated — check probability thresholds or data.")
+        return orders_df  
+
+    if "date" in orders_df.columns:
+        orders_df["date"] = pd.to_datetime(orders_df["date"])
+        orders_df.sort_values(by="date", inplace=True)
+    else:
+        print("⚠️ 'date' column missing in orders — this should not happen if orders are formatted properly.")
+        return pd.DataFrame()
+
     return orders_df
+
 
 def generate_orders_from_deals(
     deals_csv_path: str,
