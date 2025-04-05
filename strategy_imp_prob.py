@@ -29,7 +29,6 @@ def extract_offer_price(cash_terms: str) -> Optional[float]:
     try:
         if "/sh" in cash_terms:
             price_per_share = float(cash_terms.split("/")[0].replace(",", ""))
-            print(price_per_share)
             return price_per_share
         else:
             print(f"Skipping non-per-share offer: {cash_terms}")
@@ -64,16 +63,26 @@ def compute_fallback_price(deal_id, announce_date, price_history_df) -> Optional
 def estimate_implied_probability(deal) -> Optional[float]:
     try:
         offer_price = extract_offer_price(deal["Cash Terms"])
-        arb_spread = float(deal["Arb Spread (Gross)"].strip('%')) / 100
+        if offer_price is None:
+            print(f"Invalid cash terms for deal_id {deal['deal_id']}: {deal['Cash Terms']}")
+            return None
+        arb_spread = float(deal["Arb Spread (Gross)"]) / 100
+        if pd.isna(deal["Arb Spread (Gross)"]):
+            print(f"NaN Arb Spread for deal_id {deal['deal_id']}")
         fallback_price = deal["Fallback Price"]
-
+        
         if offer_price is None or pd.isna(fallback_price):
+            if offer_price is None:
+                print(f"Offer price is None for deal_id {deal['deal_id']}")
+            if pd.isna(fallback_price):
+                print(f"Fallback price is NaN for deal_id {deal['deal_id']}")
             return None
 
         target_price = offer_price * (1 - arb_spread)
         p = (target_price - fallback_price) / (offer_price - fallback_price)
         return max(0.0, min(p, 1.0))
-    except:
+    except Exception as e:
+        print(f"Error estimating implied probability for deal_id {deal['deal_id']}: {e}")
         return None
 
 def load_deals(deals_csv_path: str, price_history_df: pd.DataFrame, min_prob_threshold: float = 0.75) -> pd.DataFrame:
@@ -92,6 +101,9 @@ def load_deals(deals_csv_path: str, price_history_df: pd.DataFrame, min_prob_thr
         lambda row: compute_fallback_price(row["deal_id"], row["Announce Date"], price_history_df),
         axis=1
     )
+    deals_df["Arb Spread (Gross)"] = deals_df["Arb Spread (Gross)"].replace(r'^\s*$', pd.NA, regex=True)
+    deals_df["Arb Spread (Gross)"] = deals_df["Arb Spread (Gross)"].fillna(0.0)
+    deals_df["Arb Spread (Gross)"] = deals_df["Arb Spread (Gross)"].astype(float)
 
     # Compute implied probabilities
     deals_df["Implied Prob"] = deals_df.apply(estimate_implied_probability, axis=1)
@@ -99,7 +111,12 @@ def load_deals(deals_csv_path: str, price_history_df: pd.DataFrame, min_prob_thr
     print(f"Loaded {len(deals_df)} deals")
     print(f"Max Implied Probability: {deals_df['Implied Prob'].max():.2%}")
     print(f"Min Implied Probability: {deals_df['Implied Prob'].min():.2%}")
-
+    print(f"Deals with Implied Probabilities: {deals_df['Implied Prob'].notna().sum()}")
+    print(f"Deals with Fallback Prices: {deals_df['Fallback Price'].notna().sum()}")
+    print(f"Deals with NaN Fallback Prices: {deals_df['Fallback Price'].isna().sum()}")
+    print(f"Deals with NaN Implied Probabilities: {deals_df['Implied Prob'].isna().sum()}")
+    print(f"Deals with NaN Cash Terms: {deals_df['Cash Terms'].isna().sum()}")
+    print(f"Deals with NaN Arb Spread: {deals_df['Arb Spread (Gross)'].isna().sum()}")
     deals_df = deals_df[deals_df["Implied Prob"] >= min_prob_threshold]
     print(f"Deals after filtering (p ≥ {min_prob_threshold}): {len(deals_df)}")
 
