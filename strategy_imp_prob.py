@@ -101,9 +101,15 @@ def load_deals(deals_csv_path: str, price_history_df: pd.DataFrame, min_prob_thr
         lambda row: compute_fallback_price(row["deal_id"], row["Announce Date"], price_history_df),
         axis=1
     )
+    print(f"Fallback Price — min: {deals_df['Fallback Price'].min():.2f}, max: {deals_df['Fallback Price'].max():.2f}")
+
+
     deals_df["Arb Spread (Gross)"] = deals_df["Arb Spread (Gross)"].replace(r'^\s*$', pd.NA, regex=True)
     deals_df["Arb Spread (Gross)"] = deals_df["Arb Spread (Gross)"].fillna(0.0)
     deals_df["Arb Spread (Gross)"] = deals_df["Arb Spread (Gross)"].astype(float)
+
+    print(f"Arb Spread (Gross) — min: {deals_df['Arb Spread (Gross)'].min():.2f}%, max: {deals_df['Arb Spread (Gross)'].max():.2f}%")
+
 
     # Compute implied probabilities
     deals_df["Implied Prob"] = deals_df.apply(estimate_implied_probability, axis=1)
